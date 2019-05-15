@@ -34,5 +34,5 @@ Notebook
 4. how to train nn for regression
 5. tips and tricks
 
-
+<see 03_tensorflow.ipynb>
 

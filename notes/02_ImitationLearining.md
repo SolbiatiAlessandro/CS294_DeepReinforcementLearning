@@ -70,3 +70,23 @@ We assign a cost function where c(s, a) is 0 if action is in the expert policy, 
 Discrete case -> C = Expectation of all cost for every state action t  ~ (epsilon * T^2) 
 ContinuousCase using Dagger -> C = Expectation of all cost for every state action t  ~ (epsilon * T)
 
+## Cost/Reward in imitation learning
+
+What does make a action good/bad? Setting a reward.
+You have the tiger and you want to take some action, you actually care about the reward. Your objective is to minimize the log probability of the cost (negative of the reward)
+Can we extend cost function to imitation learning?
+
+Reward in imitation r(s, a) = log p(a = pi(s) | s) where pi is the expert policy
+This create problem because you could execute the action that the expert executed, but your state might be different.
+
+This is also interepreted as a 0-1 loss: c(s, a) = 0 if a = pi(s) else 1
+
+If we analyise this cost model turns out costs is linear in Time O(epsilon * Time ^ 2)
+
+Let's make the analysis more general, we will introduce generalization constraints and dagger
+even here Time ~  O(epsilon * Time ^ 2)
+
+in practice reward functions are not simple at all -> this leads to exploration/exploitation
+
+
+

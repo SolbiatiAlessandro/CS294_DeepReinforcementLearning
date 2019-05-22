@@ -116,7 +116,7 @@ def run_policy(env, policy, num_rollouts, description, max_timesteps=None, rende
     return expert_data
 
 
-def run_expert_policy(num_rollouts, envname, max_timesteps=None, render=False, verbose=True):
+def run_roboschool_policy(num_rollouts, envname, max_timesteps=None, render=False, verbose=True):
     assert envname in ROBOSCOOL_AVAILABLE_ENVS
     # Load the policy module
     module_name = "%s.%s" % (EXPERT_DIR, envname)
@@ -141,7 +141,7 @@ def main():
 
     if args.engine == ROBOSCHOOL_ENGINE:
         print('loading %s expert policy' % ROBOSCHOOL_ENGINE)
-        expert_data = run_expert_policy(num_rollouts=args.num_rollouts, envname=args.envname, max_timesteps=args.max_timesteps, render=args.render, verbose=True)
+        expert_data = run_roboschool_policy(num_rollouts=args.num_rollouts, envname=args.envname, max_timesteps=args.max_timesteps, render=args.render, verbose=True)
 
     else:
         print('loading %s expert policy' % MOJOCO_ENGINE)

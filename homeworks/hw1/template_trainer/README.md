@@ -1,4 +1,4 @@
-# Imitation Learning Trainer basis
+# Trainer Template 
 
 Before running programmtically the job you need to build the package with
 
@@ -6,15 +6,7 @@ Before running programmtically the job you need to build the package with
 (venv) python setup.py sdist
 ```
 
-run the job 
-```
-cd trainer
-(venv) python task.py --help
-(venv) python task.py --mode local
-```
-
-
-(RELNA) You can programmatically run the job on cloud on cloud locally with the `utils.py` script
+You can programmatically run the job locally with the `utils.py` script
 
 ```
 cd ..

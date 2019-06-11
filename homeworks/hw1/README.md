@@ -1,4 +1,4 @@
-##Usage 
+# Usage 
 
 ```
 # Create a virtual environment
@@ -15,6 +15,15 @@ python run_expert.py experts/RoboschoolHumanoid-v1.py 'RoboschoolHumanoid-v1' --
 ```
 
 -------------------
+# Tensorflow Resources
+
+- [tf low level API guide](https://www.tensorflow.org/guide/low_level_intro)
+
+- [nice kaggle tf kernel (fraud)](https://www.kaggle.com/currie32/predicting-fraud-with-tensorflow)
+
+- [nice kaggle tf kernel (mnist)](https://www.kaggle.com/kakauandme/tensorflow-deep-nn)
+
+
 ------------------
 
 

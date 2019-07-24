@@ -2,7 +2,10 @@ from setuptools import find_packages
 from setuptools import setup
 
 REQUIRED_PACKAGES = [
-        "tensorflow>=1.13,<2"
+        "tensorflow>=1.13,<2",
+        "gym",
+        "roboschool",
+        "requests"
         ]
 
 setup(
@@ -11,6 +14,6 @@ setup(
         install_requires=REQUIRED_PACKAGES,
         packages=find_packages(),
         include_package_data=True,
-        description='Generic example trainer page'
+        description='this is from a template for trainer package'
         )
 

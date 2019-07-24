@@ -10,6 +10,7 @@ import logz
 import os
 import time
 import inspect
+import logging
 from multiprocessing import Process
 
 #============================================================================================#
@@ -26,19 +27,35 @@ def build_mlp(input_placeholder, output_size, scope, n_layers, size, activation=
         arguments:
             input_placeholder: placeholder variable for the state (batch_size, input_size)
             output_size: size of the output layer
-            scope: variable scope of the network
+            scope: (str) variable scope of the network (description)
             n_layers: number of hidden layers
-            size: dimension of the hidden layer
+            size: (int) dimension of the hidden layer, default = 64
             activation: activation of the hidden layers
             output_activation: activation of the ouput layers
 
         returns:
             output placeholder of the network (the result of a forward pass) 
+            (a.k.a. output predictions)
 
         Hint: use tf.layers.dense    
     """
     # YOUR CODE HERE
-    raise NotImplementedError
+    # (alex) wrote based on intuition, should write some tests for this
+    # the docs for tf.layers.dense is inside notes.txt
+    logging.info("build_mlp, creating computation graph")
+    layer = input_placeholder
+    for level in range(n_layers):
+        layer = tf.layer.dense(
+                layer,  
+                size,
+                activation=activation,
+                )
+    layer = tf.layer.dense(
+            layer,
+            output_size,
+            actiovation=output_activation,
+            )
+    output_placeholder = layer
     return output_placeholder
 
 def pathlength(path):
@@ -102,7 +119,13 @@ class Agent(object):
         else:
             sy_ac_na = tf.placeholder(shape=[None, self.ac_dim], name="ac", dtype=tf.float32) 
         # YOUR CODE HERE
-        sy_adv_n = None
+        # (alex) this sy_adv_n is the placeholder for the returns
+        # looks like the reward for lunar lander is only a single value, so I assume
+        # they will be only single values all the times (?)
+        # in case there are only single values I copied from above, not sure
+        # if this is the correct placeholders for single values
+        logging.info(":define_placeholder, placeholder for advantages (Returns)")
+        sy_adv_n = tf.placeholder(shape=[None], name="adv", dtype=tf.float32) 
         return sy_ob_no, sy_ac_na, sy_adv_n
 
 
@@ -134,16 +157,42 @@ class Agent(object):
                 Pass in self.n_layers for the 'n_layers' argument, and
                 pass in self.size for the 'size' argument.
         """
-        raise NotImplementedError
+        # (alex) so it looks like that build_mlp() doesn't accept some is_discrete argument
+        # so I would go for the discrete based operation here
+        #
+        # I am not too sure here what is this sy_ob_no, this looks a bit criptic
+        # sy_ob_no: (batch_size, self.ob_dim)
+        # I assume is a numpy array with size (batch_size, self.ob_dim)
+        # it should be the observations
+        # for reference : def build_mlp(
+        # input_placeholder, output_size, scope, 
+        # n_layers, size, activation=tf.tanh, output_activation=None):
+        logging.info(":policy_forward_pass, computing prediction for batch")
         if self.discrete:
             # YOUR_CODE_HERE
-            sy_logits_na = None
-            return sy_logits_na
+            sy_logits_na = [build_mlp(
+                observations_batch,
+                self.ac_dim,
+                "forward_pass_discrete",
+                self.n_layers,
+                self.size
+                ) for observation_batch in sy_ob_np]
+            return np.array(sy_logits_na)
         else:
             # YOUR_CODE_HERE
-            sy_mean = None
-            sy_logstd = None
-            return (sy_mean, sy_logstd)
+            sy_mean = []
+            sy_logstd = []
+            for observation_batch in sy_ob_np:
+                batch_predictions = build_mlp(
+                    observations_batch,
+                    self.ac_dim,
+                    "forward_pass_discrete",
+                    self.n_layers,
+                    self.size
+                    )
+                sy_mean.append(np.mean(batch_predictions))
+                sy_logstd.append(np.std(batch_predictions))
+            return (np.array(sy_mean), np.array(sy_logstd))
 
     #========================================================================================#
     #                           ----------PROBLEM 2----------
@@ -270,12 +319,12 @@ class Agent(object):
         #========================================================================================#
         if self.nn_baseline:
             raise NotImplementedError
-            self.baseline_prediction = tf.squeeze(build_mlp(
+            self.baseline_prediction = tf.squeeze((build_mlp(
                                     self.sy_ob_no, 
                                     1, 
                                     "nn_baseline",
                                     n_layers=self.n_layers,
-                                    size=self.size))
+                                    size=self.size)))
             # YOUR_CODE_HERE
             self.sy_target_n = None
             baseline_loss = None

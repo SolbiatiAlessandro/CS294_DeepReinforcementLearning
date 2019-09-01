@@ -38,6 +38,7 @@ def build_mlp(input_placeholder, output_size, scope, n_layers, size, activation=
             (a.k.a. output predictions)
 
         Hint: use tf.layers.dense    
+        the function layer.dense expect a tensor with batch_size and input_size
     """
     # YOUR CODE HERE
     # (alex) wrote based on intuition, should write some tests for this
@@ -53,7 +54,7 @@ def build_mlp(input_placeholder, output_size, scope, n_layers, size, activation=
     layer = tf.layer.dense(
             layer,
             output_size,
-            actiovation=output_activation,
+            activation=output_activation,
             )
     output_placeholder = layer
     return output_placeholder
@@ -108,11 +109,10 @@ class Agent(object):
             See Agent.build_computation_graph for notation
 
             returns:
-                sy_ob_no: placeholder for observations
-                sy_ac_na: placeholder for actions
-                sy_adv_n: placeholder for advantages
+                sy_ob_no: placeholder for batch observations
+                sy_ac_na: placeholder for batch actions
+                sy_adv_n: placeholder for batch advantages (returns)
         """
-        raise NotImplementedError
         sy_ob_no = tf.placeholder(shape=[None, self.ob_dim], name="ob", dtype=tf.float32)
         if self.discrete:
             sy_ac_na = tf.placeholder(shape=[None], name="ac", dtype=tf.int32) 
@@ -137,6 +137,7 @@ class Agent(object):
             which are the parameters of the policy distribution p(a|s)
 
             arguments:
+                placeholder for batch observations
                 sy_ob_no: (batch_size, self.ob_dim)
 
             returns:
@@ -170,34 +171,40 @@ class Agent(object):
         logging.info(":policy_forward_pass, computing prediction for batch")
         if self.discrete:
             # YOUR_CODE_HERE
-            sy_logits_na = [build_mlp(
-                observations_batch,
+            # since I want logits I will use not sigmoid as an activation functino
+            # for the output layer, since are  non normalised
+            sy_logits_na = build_mlp(
+                sy_ob_no,
                 self.ac_dim,
                 "forward_pass_discrete",
                 self.n_layers,
-                self.size
-                ) for observation_batch in sy_ob_np]
+                self.size,
+                output_activation=None
+                ) 
             return np.array(sy_logits_na)
         else:
             # YOUR_CODE_HERE
-            sy_mean = []
-            sy_logstd = []
-            for observation_batch in sy_ob_np:
-                batch_predictions = build_mlp(
+            # output_activiation is None, because is a regression
+            # sy_logstd is a trainable variable
+            sy_mean = build_mlp(
                     observations_batch,
                     self.ac_dim,
-                    "forward_pass_discrete",
+                    "forward_pass_continuous",
                     self.n_layers,
-                    self.size
+                    self.size,
+                    output_activation=None,
                     )
-                sy_mean.append(np.mean(batch_predictions))
-                sy_logstd.append(np.std(batch_predictions))
+            sy_logstd = tf.Variable(
+                    np.zeros(self.ac_dim),
+                    trainable=True
+                    )
             return (np.array(sy_mean), np.array(sy_logstd))
 
     #========================================================================================#
     #                           ----------PROBLEM 2----------
     #========================================================================================#
-    def sample_action(self, policy_parameters):
+    @staticmethod
+    def sample_action(self, policy_parameters, discrete=None):
         """ Constructs a symbolic operation for stochastically sampling from the policy
             distribution
 
@@ -208,6 +215,7 @@ class Agent(object):
                     if continuous: (mean, log_std) of a Gaussian distribution over actions
                         sy_mean: (batch_size, self.ac_dim)
                         sy_logstd: (self.ac_dim,)
+                discrete: for testing
 
             returns:
                 sy_sampled_ac: 
@@ -221,15 +229,27 @@ class Agent(object):
         
                  This reduces the problem to just sampling z. (Hint: use tf.random_normal!)
         """
-        raise NotImplementedError
-        if self.discrete:
+        if discrete is None: discrete = self.discrete
+        # (alex) what's the difference between this and sample_policy?
+        # here I need to stochastically sample the policy
+        # why I don't just take the max? because is a distribution
+        if discrete:
             sy_logits_na = policy_parameters
             # YOUR_CODE_HERE
-            sy_sampled_ac = None
+            # Draw samples from a multinomial distribution.
+            # number of experiment is the size of the batch 
+            # pvals is the logits
+            # this are the sampled actions
+            sy_sampled_ac = tf.random.categorical(sy_logits_na, 1)
         else:
-            sy_mean, sy_logstd = policy_parameters
+            sy_mean, sy_logstd = policy_parameters 
             # YOUR_CODE_HERE
-            sy_sampled_ac = None
+            # mu + sigma * z,         z ~ N(0, I)
+            # I assume I can broadcast like this in tensorflow
+            # dimensions here don't work, sy_mean is (10, 5) but 
+            # sy_longstd is only (5)
+            # this  will throw an error
+            sy_sampled_ac = sy_mean + sy_logstd * tf.random.normal(sy_logstd.shape)
         return sy_sampled_ac
 
     #========================================================================================#
@@ -258,15 +278,19 @@ class Agent(object):
                 For the discrete case, use the log probability under a categorical distribution.
                 For the continuous case, use the log probability under a multivariate gaussian.
         """
-        raise NotImplementedError
         if self.discrete:
             sy_logits_na = policy_parameters
-            # YOUR_CODE_HERE
-            sy_logprob_n = None
+            # from tf.distribution.multinomial docs https://www.tensorflow.org/api_docs/python/tf/distributions/Multinomial#prob
+            # total_count is the size of the batch
+            # logits is the logits
+            categorical = tf.distribution.multinomial(total_count = sy_logits_na.shape[0], logits = sy_logits_na)
+            sy_logprob_n = tf.math.log(categorical.prob(sy_ac_na))
         else:
             sy_mean, sy_logstd = policy_parameters
-            # YOUR_CODE_HERE
-            sy_logprob_n = None
+            # this is not multivariate, probably will break
+            # should use a multivariate gaussian distribution
+            gaussian = tf.distribution.normal(loc=sy_mean, scale=sy_logstd)
+            sy_logprob_n = tf.math.log(gaussian.prob(sy_ac_na))
         return sy_logprob_n
 
     def build_computation_graph(self):

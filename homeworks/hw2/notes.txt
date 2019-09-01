@@ -52,3 +52,22 @@ dense(inputs, units, activation=None, use_bias=True, kernel_initializer=None, bi
 
     Returns:
       Output tensor the same shape as `inputs` except the last dimension is of
+
+
+QUESTIONS (BLOG)
+POLICY FORWARD PASS
+what is policy_parameters?
+this are the parmeter for the distribution.
+Why policy is a distribution?
+From the thoery part: More formally, π(θ) is a probability distribution over the action space, conditioned on the state.
+DISCRETE CASE
+sy_logits_na: these are the logits, that is the non-normalised output of the a multi-classification model (cat:50, dogs:100, duck:10). The logits are put into a softmax
+the dimension of sy_logits_na is (batch_size, self.ac_dim). This means that for every obs in the batch, it gives you the probability of taking that action.
+CONTINOUS CASE
+sy_mean: this is the mean for every action in the continuous action space, and is the output of the regression model (policy). The dimensions is (batch_size, self.ac_dim) because for every observation in the batch, it gives you the mean of the value to take for every action in the action space. This is because in the continous case you take an action on every  continous axis (think of a car moving in x and y, at every steps you want to take an action on every continous axis. Whereas in the discrete case you just want to find out which is the optimal action to take from the set of available actions).
+
+(Might be helpful to run the code with pdb attached to check what happens, otherwise looks to abstract.)
+
+SAMPLE_ACTION
+given a distritbution we need to sample an action.
+we use numpy sampling functions. One case we need to sample from a multinomial distribution, from the other to a multivariate gaussian distribution.

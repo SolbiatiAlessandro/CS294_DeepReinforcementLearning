@@ -25,4 +25,32 @@ exploration:
 epsilon greedy
 boltzman exploration (temperature of the actions): you don't explore super bad trajectories
 
+Fitted Q-value iteration does not converge!
+Connverges in the tabular case, because is a restriction. But ot the fitted versino.
 
+ADVANCED Q-LEARNING
+========
+two problems
+
+1. not gradient descent (target value dependent on Q)
+Solution: target network
+you decouple target from parameter being learned by not using Q in the target but a old copy of Q (with old parameter). This is a gradient descent (real regressionn)
+
+2. samples temporally correlated
+sequential states are correlated. 
+Solution: replay buffer. Training data are random sampled from buffer that is populated periodically running the latest policy, not correlated.
+
+this leads to
+CLASSIC DQN ALGORITHM
+1.  take action, observe (s,a,s+1,r) put it in buffer
+2.  sample mini batch from buffer
+3.  compute target value y = r + gamma * max * Q(target network)
+4.  regress to target value 
+5.  update parameter of target network (every N steps)
+
+Another problem: overestimating value (Q-function overestimate value of states), solution: double-DQN
+Target Value
+Qa <- r + gamma  * Qb ( s+1, argmax Qa (s+1, a+1) )
+Qb <- r + gamma  * Qa ( s+1, argmax Qb (s+1, a+1) )
+Don't use same network to choose action and evaluate value
+you can use current network for Qa and target nentwork for Qb

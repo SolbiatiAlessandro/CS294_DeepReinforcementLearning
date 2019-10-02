@@ -4,7 +4,7 @@ lets have a look at the files
 
 
 QLearner
-__init__
+DONE (1) __init__
 - do I need to build tf model here?
 it is called with q_func, what is this? the approximation function for q values
 
@@ -17,6 +17,10 @@ this y(i) is the target value
 - 3. minimise Bellman Error: E = Q(s(i), a(i)) - y(i)
 
 stopping_criterion_met
-step_env
-update_env
+
+DONE (2) step_env
+this part is interesting since is completely uncorrelated from the learning that happens completely asyncronosuly
+also interesting to see how to use tensorflow,with run session and self.best_action
+
+(3) update_model
 log_progress

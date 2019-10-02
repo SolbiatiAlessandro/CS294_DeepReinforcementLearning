@@ -158,15 +158,33 @@ class QLearner(object):
     # Tip: use huber_loss (from dqn_utils) instead of squared error when defining self.total_error
     ######
 
-    q = q_func(obs_t_float, num_actions, scope="q_func", reuse=False)
-    g_func_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="q_func")
+    ### YOUR CODE
 
-    target_q = q_func(obs_tp1_float, num_actionns, scope="target_q_func", reuse=False)
+    # current q values (for every action in num_actions), given observations at time t
+    current_q_values = q_func(obs_t_float, num_actions, scope="q_func", reuse=False)
+    q_func_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="q_func")
+    self.best_action = tf.argmax(current_q_values, axis=1)
+
+    # target q network, i.e. outdated q_network used to compute target value to do regression. 
+    # this trick make sure when you are using the gradient you are actually doing gradient descent
+    # this takes observations at tp1 (t+1), since in the formula you use the target q network
+    # with the state at t+1 (called s prime)
+    target_q_values = q_func(obs_tp1_float, num_actions, scope="target_q_func", reuse=False)
     target_q_func_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="target_q_func")
 
-    self.best_act = tg.argmax(q, axis=1)
+    # here we do the argmax over the q_values from the target network that we will need in the
+    # target values formula, note this are the best q_values for t+1 in s prime
+    best_q_values_tp1 = tf.reduce_max(target_q_values)
 
-    self.total_error = 
+    # this is the formula for computing target values to regress to
+    # y = observed reward + (halting condition) * gamma * argmax(Q_target_network(s prime))
+    y = self.rew_t_ph + (1. - self.done_mask_ph) * gamma * best_q_values_tp1
+
+    # this are the predicted value, note they are off policy. You don't follow the current q function 
+    # execute on the best policy, but you might have had this roll outs with a different policy
+    y_pred = tf.reduce_sum(tf.one_hot(tf.act_t_ph, self.num_actions) * current_q_values, axis = 1)
+
+    self.total_error = tf.reduce_mean(huber_loss(y_pred - y))
 
 
     ######
@@ -236,8 +254,32 @@ class QLearner(object):
     # might as well be random, since you haven't trained your net...)
 
     #####
-
     # YOUR CODE HERE
+
+    last_obs = self.last_obs
+    # storing the last observation in replay buffer
+    index = self.replay_buffer.store_frame(last_obs)
+    # getting the last N observations to feed into the CNN
+    recent_observations = self.replay_buffer.encode_recent_observation()
+
+    if not self.model_initialized or random.random() < self.exploration.value(self.t):
+        # this is the epsilon greedy part
+        action = self.env.action_space.sample()
+    else:
+        # to get the best action we run the tensorflow session
+        # with variable self.best_action, that we definied
+        # above as the tf.argmax(q_values,axis=1)
+        action = self.session.run(self.best_action, 
+                feed_dict = {self.obs_t_ph:[recent_observations]})[0]
+
+        # step action
+    obs, reward, done, info = env.step(action)
+    if done:
+        obs = env.reset()
+    self.last_obs = obs
+    # store in replay buffer
+    self.replay_buffer.store_effect(index, action, reward, done)
+
 
   def update_model(self):
     ### 3. Perform experience replay and train the network.
@@ -283,6 +325,7 @@ class QLearner(object):
       #####
 
       # YOUR CODE HERE
+      transitions_batch = self.replay_buffer.sample(self.batch_size)
 
       self.num_param_updates += 1
 

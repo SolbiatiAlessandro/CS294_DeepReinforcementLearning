@@ -325,7 +325,14 @@ class QLearner(object):
       #####
 
       # YOUR CODE HERE
-      transitions_batch = self.replay_buffer.sample(self.batch_size)
+      obs_batch, act_batch, rew_batch, next_obs_batch, done_batch = self.replay_buffer.sample(self.batch_size)
+
+      if not self.model_initialized:
+          self.initialize_interdependent_variables(self.session, tf.global_variables(), {
+              self.obs_t_ph: obs_t_batch,
+              self.obs_tp1_ph: obs_tp1_batch,
+          })
+
 
       self.num_param_updates += 1
 

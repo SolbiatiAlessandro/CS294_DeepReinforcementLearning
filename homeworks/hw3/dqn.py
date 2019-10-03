@@ -161,7 +161,7 @@ class QLearner(object):
     ### YOUR CODE
 
     # current q values (for every action in num_actions), given observations at time t
-    current_q_values = q_func(obs_t_float, num_actions, scope="q_func", reuse=False)
+    current_q_values = q_func(obs_t_float, self.num_actions, scope="q_func", reuse=False)
     q_func_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="q_func")
     self.best_action = tf.argmax(current_q_values, axis=1)
 
@@ -169,7 +169,7 @@ class QLearner(object):
     # this trick make sure when you are using the gradient you are actually doing gradient descent
     # this takes observations at tp1 (t+1), since in the formula you use the target q network
     # with the state at t+1 (called s prime)
-    target_q_values = q_func(obs_tp1_float, num_actions, scope="target_q_func", reuse=False)
+    target_q_values = q_func(obs_tp1_float, self.num_actions, scope="target_q_func", reuse=False)
     target_q_func_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="target_q_func")
 
     # here we do the argmax over the q_values from the target network that we will need in the
@@ -182,7 +182,7 @@ class QLearner(object):
 
     # this are the predicted value, note they are off policy. You don't follow the current q function 
     # execute on the best policy, but you might have had this roll outs with a different policy
-    y_pred = tf.reduce_sum(tf.one_hot(tf.act_t_ph, self.num_actions) * current_q_values, axis = 1)
+    y_pred = tf.reduce_sum(tf.one_hot(self.act_t_ph, self.num_actions) * current_q_values, axis = 1)
 
     self.total_error = tf.reduce_mean(huber_loss(y_pred - y))
 
@@ -273,9 +273,9 @@ class QLearner(object):
                 feed_dict = {self.obs_t_ph:[recent_observations]})[0]
 
         # step action
-    obs, reward, done, info = env.step(action)
+    obs, reward, done, info = self.env.step(action)
     if done:
-        obs = env.reset()
+        obs = self.env.reset()
     self.last_obs = obs
     # store in replay buffer
     self.replay_buffer.store_effect(index, action, reward, done)
@@ -330,20 +330,20 @@ class QLearner(object):
 
       # initialise model
       if not self.model_initialized:
-          self.initialize_interdependent_variables(self.session, tf.global_variables(), {
-              self.obs_t_ph: obs_t_batch,
-              self.obs_tp1_ph: obs_tp1_batch,
+          initialize_interdependent_variables(self.session, tf.global_variables(), {
+              self.obs_t_ph: obs_batch,
+              self.obs_tp1_ph: next_obs_batch,
               })
           self.model_initialized = True
 
       # run training session
-      total_error, _ = self.session.run(self.total_error, self.train_fn, 
+      _ = self.session.run(self.train_fn, 
               feed_dict  = {
                   self.obs_t_ph : obs_batch,
                   self.act_t_ph : act_batch,
                   self.rew_t_ph : rew_batch,
                   self.obs_tp1_ph : next_obs_batch,
-                  self.done_mask_ph : self.done_batch,
+                  self.done_mask_ph : done_batch,
                   self.learning_rate : self.optimizer_spec.lr_schedule.value(self.t)
                 }
               )

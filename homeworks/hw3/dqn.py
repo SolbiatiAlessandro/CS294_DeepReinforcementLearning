@@ -323,16 +323,34 @@ class QLearner(object):
       # you should update every target_update_freq steps, and you may find the
       # variable self.num_param_updates useful for this (it was initialized to 0)
       #####
-
       # YOUR CODE HERE
+
+      # sample from buffer
       obs_batch, act_batch, rew_batch, next_obs_batch, done_batch = self.replay_buffer.sample(self.batch_size)
 
+      # initialise model
       if not self.model_initialized:
           self.initialize_interdependent_variables(self.session, tf.global_variables(), {
               self.obs_t_ph: obs_t_batch,
               self.obs_tp1_ph: obs_tp1_batch,
-          })
+              })
+          self.model_initialized = True
 
+      # run training session
+      total_error, _ = self.session.run(self.total_error, self.train_fn, 
+              feed_dict  = {
+                  self.obs_t_ph : obs_batch,
+                  self.act_t_ph : act_batch,
+                  self.rew_t_ph : rew_batch,
+                  self.obs_tp1_ph : next_obs_batch,
+                  self.done_mask_ph : self.done_batch,
+                  self.learning_rate : self.optimizer_spec.lr_schedule.value(self.t)
+                }
+              )
+
+      # updating target networK
+      if self.num_param_updates % self.target_update_freq == 0: 
+          _ = self.session.run(self.update_target_fn)
 
       self.num_param_updates += 1
 
